@@ -1,0 +1,30 @@
+Sun Oct  8 13:36:30 2023       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 525.105.17   Driver Version: 525.105.17   CUDA Version: 12.0     |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|                               |                      |               MIG M. |
+|===============================+======================+======================|
+|   0  Tesla V100-PCIE...  Off  | 00000000:3B:00.0 Off |                    0 |
+| N/A   32C    P0    35W / 250W |      0MiB / 16384MiB |      1%      Default |
+|                               |                      |                  N/A |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                                  |
+|  GPU   GI   CI        PID   Type   Process name                  GPU Memory |
+|        ID   ID                                                   Usage      |
+|=============================================================================|
+|  No running processes found                                                 |
++-----------------------------------------------------------------------------+
+loading annotations into memory...
+Done (t=0.09s)
+creating index...
+index created!
+Traceback (most recent call last):
+  File "/lustre/fs1/home/cap6411.student34/cap6411-pacl/train.py", line 34, in <module>
+    model = PACLCLip(vision_dim, text_dim, shared_dim).to(device)
+  File "/lustre/fs1/home/cap6411.student34/cap6411-pacl/core.py", line 51, in __init__
+    super(PatchAlignedContrastiveLearning, self).__init__()
+NameError: name 'PatchAlignedContrastiveLearning' is not defined
