@@ -1,18 +1,7 @@
 import torch
 import torch.nn as nn
 import clip
-from patchify import patchify
-
-
-class PatchExtractor(nn.Module):
-    def __init__(self, patch_size):
-        super(PatchExtractor, self).__init__()
-        self.patch_size = patch_size
-
-    def forward(self, x):
-        patches = x.unfold(2, self.patch_size, self.patch_size).unfold(3, self.patch_size, self.patch_size)
-        patches = patches.permute(0, 2, 3, 1, 4, 5).reshape(x.size(0), -1, x.size(1), self.patch_size, self.patch_size)
-        return patches
+import torchvision
 
 class VisionTransformerWrapper(nn.Module):
     def __init__(self, vision_transformer):
@@ -20,38 +9,28 @@ class VisionTransformerWrapper(nn.Module):
         self.vision_transformer = vision_transformer
 
     def forward(self, x: torch.Tensor):
-        x = self.vision_transformer.conv1(x)  
+        x = self.conv1(x)  
         x = x.reshape(x.shape[0], x.shape[1], -1)  
         x = x.permute(0, 2, 1)  
-        x = x + self.vision_transformer.positional_embedding.to(x.dtype)[1:]
-        x = self.vision_transformer.ln_pre(x)
+        x = torch.cat([self.class_embedding.to(x.dtype) + torch.zeros(x.shape[0], 1, x.shape[-1], dtype=x.dtype, device=x.device), x], dim=1)  # shape = [*, grid ** 2 + 1, width]
+        x = x + self.positional_embedding.to(x.dtype)
+        x = self.ln_pre(x)
 
         x = x.permute(1, 0, 2)  
-        x = self.vision_transformer.transformer(x)
+        x = self.transformer(x)
         x = x.permute(1, 0, 2)  
 
-        x = self.vision_transformer.ln_post(x[:, 0, :])
-
+        x = self.ln_post(x[:, 1:, :])
         return x 
+        
 
 class PACLVisionEncoder(nn.Module):
-    def __init__(self, clip_model, patch_size=16):
+    def __init__(self, clip_model):
         super(PACLVisionEncoder, self).__init__()
         self.clip_model = VisionTransformerWrapper(clip_model.visual)
-        self.patch_size = patch_size
-        self.patch_extractor = PatchExtractor(patch_size)
-        self.upsample = nn.Upsample(size=(224, 224), mode='bilinear', align_corners=True)
 
     def forward(self, x):
-        #patches = patchify(x, (1, 3, self.patch_size, self.patch_size), step=self.patch_size)
-        #patches = patches.permute(0, 2, 3, 1, 4, 5, 6).reshape(x.size(0), -1, 3, self.patch_size, self.patch_size)
-        #patches = patches.reshape(-1, 3, self.patch_size, self.patch_size)
-        patches = self.patch_extractor(x)
-        b, t, c, h, w = patches.size()
-        patches_reshaped = patches.reshape(b * t, c, h, w)
-        patches_upsampled = self.upsample(patches_reshaped)
-        patch_embeddings = self.clip_model(patches_upsampled)
-        patch_embeddings = patch_embeddings.reshape(x.size(0), t, -1)
+        patch_embeddings = self.clip_model(x)
         return patch_embeddings
 
 class PACLVisionEmbedder(nn.Module):
